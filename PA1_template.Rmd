@@ -1,20 +1,70 @@
+---
+output:
+  html_document: default
+  pdf_document: default
+---
 # Reproducible Research: Peer Assessment 1
 
 
 ## Loading and preprocessing the data
+```{r} 
+rdata <- read.csv("activity.csv")
+rdata$date <- as.Date(rdata$date)
 
+```
 
 
 ## What is mean total number of steps taken per day?
+```{r}
+gr <- split(rdata, rdata$date)
+spd <- sapply(gr, function(x){ sum (x[,1], na.rm = TRUE)})
+mnspd <- mean(spd)
+mdspd <- median(spd)
+hist(spd)
+```
 
+
+Mean steps taken per day: `r mnspd`. Median steps taken per day: `r mdspd`.
 
 
 ## What is the average daily activity pattern?
-
-
+```{r}
+gr <- split(rdata, rdata$interval)
+apin <- sapply(gr, function(x){ mean (x[,1], na.rm = TRUE)})
+plot(names(apin), apin, type = "l")
+```
 
 ## Imputing missing values
+Missing values in the dataset: `r sum(!complete.cases(rdata))`
+
+Try to filling missing values with mean for that 5-minute interval.
 
 
+```{r}
+ndata <- rdata
+ndata[!complete.cases(ndata), 1] <- apin[as.character(ndata[!complete.cases(ndata), 3])]
+gr <- split(ndata, ndata$date)
+spd <- sapply(gr, function(x){ sum (x[,1], na.rm = TRUE)})
+mnspd <- mean(spd)
+mdspd <- median(spd)
+hist(spd)
+```
+
+Mean steps taken per day: `r mnspd`. Median steps taken per day: `r mdspd`.
+After filling missing values dataset is more concentrated at mean.
 
 ## Are there differences in activity patterns between weekdays and weekends?
+
+```{r fig.keep='all'} 
+library(lattice)
+wd  <- weekdays(as.Date(ndata$date, ), abbreviate = TRUE)
+wd[wd == "Sun" | wd == "Sat"] <- "1"
+wd[wd != 1] <- "0"
+ndata$wd <- factor(wd, labels = c("weekday", "weekend"), levels = c("0", "1"))
+xyplot(steps ~ interval | wd, layout = c(1,2), 
+       data = ndata,
+       panel = function(x, y, ...) {
+          panel.average(x, y, horizontal = FALSE, col = "Blue", ... )
+       })
+
+```
