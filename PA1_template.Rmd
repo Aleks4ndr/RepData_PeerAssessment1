@@ -31,7 +31,7 @@ Mean steps taken per day: `r mnspd`. Median steps taken per day: `r mdspd`.
 ```{r}
 gr <- split(rdata, rdata$interval)
 apin <- sapply(gr, function(x){ mean (x[,1], na.rm = TRUE)})
-plot(names(apin), apin, type = "l")
+plot(names(apin), apin, type = "l", xlab = "Interval", ylab = "Steps")
 ```
 
 ## Imputing missing values
@@ -45,26 +45,40 @@ ndata <- rdata
 ndata[!complete.cases(ndata), 1] <- apin[as.character(ndata[!complete.cases(ndata), 3])]
 gr <- split(ndata, ndata$date)
 spd <- sapply(gr, function(x){ sum (x[,1], na.rm = TRUE)})
-mnspd <- mean(spd)
-mdspd <- median(spd)
+nmnspd <- mean(spd)
+nmdspd <- median(spd)
 hist(spd)
 ```
 
-Mean steps taken per day: `r mnspd`. Median steps taken per day: `r mdspd`.
-After filling missing values dataset is more concentrated at mean.
+Mean steps taken per day: `r nmnspd`. Median steps taken per day: `r nmdspd`.
+After filling missing values the dataset seems more concentrated about mean.
+Difference between means: `r nmnspd - mnspd`. Difference berween medians: `r nmdspd - mdspd`
 
 ## Are there differences in activity patterns between weekdays and weekends?
 
-```{r fig.keep='all'} 
-library(lattice)
-wd  <- weekdays(as.Date(ndata$date, ), abbreviate = TRUE)
-wd[wd == "Sun" | wd == "Sat"] <- "1"
-wd[wd != 1] <- "0"
-ndata$wd <- factor(wd, labels = c("weekday", "weekend"), levels = c("0", "1"))
-xyplot(steps ~ interval | wd, layout = c(1,2), 
-       data = ndata,
-       panel = function(x, y, ...) {
-          panel.average(x, y, horizontal = FALSE, col = "Blue", ... )
-       })
+
+```{r}
+ndata$week_part <- factor(
+  ifelse(as.integer(format(ndata$date, format = '%u')) %in% c(1:5),
+         'weekday', 'weekend'))
 
 ```
+
+Panels in base plot system
+
+```{r}
+par(mfrow = c(2, 1), oma=c(1,1,0,0), mar=c(4,4,2,2))
+
+stepsWeekend <- aggregate(steps ~ interval, 
+                          data = subset(ndata,week_part == "weekend"), 
+                          FUN = mean)
+stepsWeekday <- aggregate(steps ~ interval, 
+                          data = subset(ndata,week_part == "weekday"), 
+                          FUN = mean)
+## add the first
+plot(stepsWeekend, type = "l", xlab="interval", ylab="steps", main="Weekend")
+## add the second
+plot(stepsWeekday, type = "l", xlab="interval", ylab="steps", main="weekday")
+```
+
+Yes, there seem to be differences! More steps in the weekend.
